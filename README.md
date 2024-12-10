@@ -68,3 +68,32 @@ make modules
 ```
 
 6. Compiled binary is in `./objs/ngx_http_tcp_brutal_module.so`
+
+# Build Rocky Linux
+
+1. start build container
+```
+docker pull rockylinux:9.3.20231119
+docker run -it  rockylinux:9.3.20231119 /bin/bash
+```
+
+2. packages
+```
+yum update -y
+yum install -y gcc git wget pcre-devel zlib-devel
+```
+
+3. donwload source 
+```
+docker cp brutal-nginx 62aa4a134191:/root
+wget https://nginx.org/download/nginx-1.20.1.tar.gz
+tar xf nginx-1.20.1.tar.gz && cd nginx-1.20.1
+./configure --with-compat --add-dynamic-module=/root/brutal-nginx
+make modules
+```
+
+4. copy binary module
+```
+ls -lhat ./objs/ngx_http_tcp_brutal_module.so
+docker cp 62aa4a134191:/root/nginx-1.20.1/objs/ngx_http_tcp_brutal_module.so .
+```

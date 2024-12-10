@@ -26,18 +26,30 @@ extern ngx_module_t ngx_http_tcp_brutal_module;
 
 typedef struct {
 	ngx_flag_t	enable;
+} ngx_http_tcp_brutal_main_conf_t;
+
+typedef struct {
 	ngx_uint_t	rate;
-} ngx_http_tcp_brutal_conf_t;
+} ngx_http_tcp_brutal_loc_conf_t;
 
 static ngx_int_t
 ngx_http_tcp_brutal_handler(ngx_http_request_t *r)
 {
-	ngx_http_tcp_brutal_conf_t *conf;
+	ngx_http_tcp_brutal_main_conf_t *bmcf;
+	ngx_http_tcp_brutal_loc_conf_t *blcf;
 	int fd = r->connection->fd;
 
-	conf = ngx_http_get_module_loc_conf(r, ngx_http_tcp_brutal_module);
-	if (!conf->enable)
-		return NGX_DECLINED;
+	bmcf = ngx_http_get_module_main_conf(r, ngx_http_tcp_brutal_module);
+	blcf = ngx_http_get_module_loc_conf(r, ngx_http_tcp_brutal_module);
+
+	if (!bmcf->enable) {
+        // 如果没有启用 brutal 流控，记录日志
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "Brutal TCP flow control is not enabled for request from %V", &r->connection->addr_text);
+        return NGX_DECLINED;
+    }
+		
+    // 如果启用了 brutal 流控，记录日志
+    ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "Brutal TCP flow control is enabled for request from %V with rate %ui bytes/s", &r->connection->addr_text, blcf->rate);
 
 	char buf[32];
 	strcpy(buf, "brutal");
@@ -49,7 +61,7 @@ ngx_http_tcp_brutal_handler(ngx_http_request_t *r)
 	}
 
 	struct brutal_params params;
-	params.rate = conf->rate;
+	params.rate = (u64)blcf->rate;  // 显式转换为 u64 类型
 	params.cwnd_gain = 15;
 
 	// TCP_BRUTAL_PARAMS = 23301
@@ -79,15 +91,40 @@ ngx_http_tcp_brutal_init(ngx_conf_t *cf)
 }
 
 static void *
-ngx_http_tcp_brutal_create_loc_conf(ngx_conf_t *cf)
+ngx_http_tcp_brutal_create_main_conf(ngx_conf_t *cf)
 {
-	ngx_http_tcp_brutal_conf_t *conf;
+	ngx_http_tcp_brutal_main_conf_t *conf;
 
 	conf = ngx_palloc(cf->pool, sizeof(*conf));
 	if (conf == NULL)
 		return NULL;
 
 	conf->enable = NGX_CONF_UNSET;
+
+	return conf;
+}
+
+static char *
+ngx_http_tcp_brutal_init_main_conf(ngx_conf_t *cf, void *conf)
+{
+	ngx_http_tcp_brutal_main_conf_t *bmcf = conf;
+
+	if (bmcf->enable == NGX_CONF_UNSET) {
+		bmcf->enable = 0;
+	}
+
+	return NGX_CONF_OK;
+}
+
+static void *
+ngx_http_tcp_brutal_create_loc_conf(ngx_conf_t *cf)
+{
+	ngx_http_tcp_brutal_loc_conf_t *conf;
+
+	conf = ngx_palloc(cf->pool, sizeof(*conf));
+	if (conf == NULL)
+		return NULL;
+
 	conf->rate = NGX_CONF_UNSET_UINT;
 
 	return conf;
@@ -96,10 +133,9 @@ ngx_http_tcp_brutal_create_loc_conf(ngx_conf_t *cf)
 static char *
 ngx_http_tcp_brutal_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
-	ngx_http_tcp_brutal_conf_t *prev = parent;
-	ngx_http_tcp_brutal_conf_t *conf = child;
+	ngx_http_tcp_brutal_loc_conf_t *prev = parent;
+	ngx_http_tcp_brutal_loc_conf_t *conf = child;
 
-	ngx_conf_merge_value(conf->enable, prev->enable, 0);
 	ngx_conf_merge_uint_value(conf->rate, prev->rate, 2);
 
 	return NGX_CONF_OK;
@@ -108,10 +144,10 @@ ngx_http_tcp_brutal_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 static ngx_command_t ngx_http_tcp_brutal_commands[] = {
 	{
 		ngx_string("tcp_brutal"),
-		NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+		NGX_HTTP_MAIN_CONF|NGX_CONF_FLAG,
 		ngx_conf_set_flag_slot,
-		NGX_HTTP_LOC_CONF_OFFSET,
-		offsetof(ngx_http_tcp_brutal_conf_t, enable),
+		NGX_HTTP_MAIN_CONF_OFFSET,
+		offsetof(ngx_http_tcp_brutal_main_conf_t, enable),
 		NULL
 	},
 	{
@@ -119,7 +155,7 @@ static ngx_command_t ngx_http_tcp_brutal_commands[] = {
 		NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
 		ngx_conf_set_num_slot,
 		NGX_HTTP_LOC_CONF_OFFSET,
-		offsetof(ngx_http_tcp_brutal_conf_t, rate),
+		offsetof(ngx_http_tcp_brutal_loc_conf_t, rate),
 		NULL
 	},
 	ngx_null_command
@@ -129,8 +165,8 @@ static ngx_http_module_t  ngx_http_tcp_brutal_module_ctx = {
 	NULL,					/* preconfiguration */
 	ngx_http_tcp_brutal_init,		/* postconfiguration */
 
-	NULL,					/* create main configuration */
-	NULL,					/* init main configuration */
+	ngx_http_tcp_brutal_create_main_conf,	/* create main configuration */
+	ngx_http_tcp_brutal_init_main_conf,	/* init main configuration */
 
 	NULL,					/* create server configuration */
 	NULL,					/* merge server configuration */
