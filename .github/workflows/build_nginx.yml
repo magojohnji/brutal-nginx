@@ -38,6 +38,8 @@ jobs:
           ls -lhat 
           cd ..
           git clone https://github.com/libressl/portable.git
+          cd protable
+          ./autogen.sh
 
       # Configure and compile Nginx with the dynamic module
       - name: Configure and build Nginx with module
