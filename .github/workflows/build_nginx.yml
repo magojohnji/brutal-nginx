@@ -51,10 +51,13 @@ jobs:
           cd /usr/local/nginx
           sudo tar -czvf nginx-built.tar.gz sbin/ conf/ html/ logs/
           sudo mv nginx-built.tar.gz $GITHUB_WORKSPACE
+          ls -lhat $GITHUB_WORKSPACE
+          cd $GITHUB_WORKSPACE
+          pwd
 
       # Upload the package as an artifact (optional)
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: nginx-built
-          path: nginx-built.tar.gz
+          path: $GITHUB_WORKSPACE/nginx-built.tar.gz
