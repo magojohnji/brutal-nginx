@@ -29,7 +29,7 @@ server {
 The binary is available on GitHub Actions.
 
 
-# log
+## log
 
 The error_log will have log messages at the info level.
 ```
