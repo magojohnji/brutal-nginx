@@ -30,6 +30,14 @@ jobs:
           ls -lhat 
           cd ..
           git clone https://github.com/nginx/nginx.git
+      
+      # download protable ssl
+      - name: Download protable ssl
+        run: |
+          pwd 
+          ls -lhat 
+          cd ..
+          git clone https://github.com/libressl/portable.git
 
       # Configure and compile Nginx with the dynamic module
       - name: Configure and build Nginx with module
@@ -37,7 +45,16 @@ jobs:
           pwd 
           ls -lhat 
           cd ../nginx
-          auto/configure --with-compat --with-http_v2_module --add-module=../brutal-nginx --prefix=/usr/local/nginx
+          auto/configure --prefix=/usr/local/nginx --with-compat --with-http_v2_module \
+          --with-file-aio --with-threads --with-http_addition_module --with-http_auth_request_module \
+          --with-http_dav_module --with-http_flv_module --with-http_gunzip_module --with-http_gzip_static_module \
+          --with-http_mp4_module --with-http_random_index_module --with-http_realip_module --with-http_secure_link_module \
+          --with-http_slice_module --with-http_ssl_module --with-http_stub_status_module --with-http_sub_module --with-http_v2_module \
+          --with-http_v3_module --with-mail --with-mail_ssl_module --with-stream --with-stream_realip_module --with-stream_ssl_module \
+          --with-stream_ssl_preread_module --with-cc-opt='-O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 -m64 -march=x86-64-v2 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -fPIC' \
+          --with-ld-opt='-Wl,-z,relro -Wl,-z,now -pie' 
+          --with-openssl=../portable \
+          --add-module=../brutal-nginx
           make
           sudo make install
 
