@@ -49,8 +49,8 @@ jobs:
       - name: Package Nginx binary
         run: |
           cd /usr/local/nginx
-          tar -czvf nginx-built.tar.gz sbin/ conf/ html/ logs/
-          mv nginx-built.tar.gz $GITHUB_WORKSPACE
+          sudo tar -czvf nginx-built.tar.gz sbin/ conf/ html/ logs/
+          sudo mv nginx-built.tar.gz $GITHUB_WORKSPACE
 
       # Upload the package as an artifact (optional)
       - name: Upload artifact
