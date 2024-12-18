@@ -1,0 +1,54 @@
+name: Build and Compile Nginx with Module
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build-nginx:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libssl-dev git
+
+      # Download Nginx source code
+      - name: Download Nginx source
+        run: git clone https://github.com/nginx/nginx.git
+
+      # Configure and compile Nginx with the dynamic module
+      - name: Configure and build Nginx with module
+        run: |
+          cd nginx
+          auto/configure --with-compat --with-http_v2_module --add-module=/root/brutal-nginx --prefix=/usr/local/nginx
+          make
+          sudo make install
+
+      # Verify the Nginx installation
+      - name: Verify Nginx version
+        run: /usr/local/nginx/sbin/nginx -v
+
+      # Package the build (optional)
+      - name: Package Nginx binary
+        run: |
+          cd /usr/local/nginx
+          tar -czvf nginx-built.tar.gz sbin/ conf/ html/ logs/
+          mv nginx-built.tar.gz $GITHUB_WORKSPACE
+
+      # Upload the package as an artifact (optional)
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: nginx-built
+          path: nginx-built.tar.gz
