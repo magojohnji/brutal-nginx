@@ -30,7 +30,11 @@ jobs:
       # Configure and compile Nginx with the dynamic module
       - name: Configure and build Nginx with module
         run: |
+          pwd
+          ls -lhat 
           cd nginx
+          pwd
+          ls -lhat 
           auto/configure --with-compat --with-http_v2_module --add-module=../brutal-nginx --prefix=/usr/local/nginx
           make
           sudo make install
