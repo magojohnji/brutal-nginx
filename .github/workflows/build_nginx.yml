@@ -56,7 +56,7 @@ jobs:
           --with-stream_ssl_preread_module \
           --with-openssl=../portable \
           --add-module=../brutal-nginx
-          make
+          make -j
           sudo make install
 
       # Verify the Nginx installation
