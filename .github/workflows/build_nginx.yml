@@ -51,8 +51,9 @@ jobs:
           cd /usr/local/nginx
           sudo tar -czvf nginx-built.tar.gz sbin/ conf/ html/ logs/
           sudo mv nginx-built.tar.gz $GITHUB_WORKSPACE
-          ls -lhat $GITHUB_WORKSPACE
           cd $GITHUB_WORKSPACE
+          sudo chown runner:runner nginx-built.tar.gz  # Change ownership to runner
+          ls -lhat $GITHUB_WORKSPACE
           pwd
 
       # Upload the package as an artifact (optional)
