@@ -31,14 +31,14 @@ jobs:
           cd ..
           git clone https://github.com/nginx/nginx.git
       
-      # download protable ssl
-      - name: Download protable ssl
+      # download libressl ssl
+      - name: Download libressl ssl
         run: |
           pwd 
           ls -lhat 
           cd ..
           git clone https://github.com/libressl/portable.git
-          cd protable
+          cd portable
           ./autogen.sh
 
       # Configure and compile Nginx with the dynamic module
