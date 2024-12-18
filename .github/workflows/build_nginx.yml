@@ -31,7 +31,7 @@ jobs:
       - name: Configure and build Nginx with module
         run: |
           cd nginx
-          auto/configure --with-compat --with-http_v2_module --add-module=/root/brutal-nginx --prefix=/usr/local/nginx
+          auto/configure --with-compat --with-http_v2_module --add-module=../brutal-nginx --prefix=/usr/local/nginx
           make
           sudo make install
 
