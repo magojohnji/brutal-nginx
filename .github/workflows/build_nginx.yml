@@ -61,4 +61,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: nginx-built
-          path: $GITHUB_WORKSPACE/nginx-built.tar.gz
+          path: nginx-built.tar.gz
