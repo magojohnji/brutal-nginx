@@ -102,8 +102,23 @@ ngx_http_tcp_brutal_init(ngx_conf_t *cf)
 {
 	ngx_http_handler_pt *h;
 	ngx_http_core_main_conf_t *cmcf;
+	ngx_http_tcp_brutal_main_conf_t *bmcf;
+	ngx_http_core_srv_conf_t **cscfp;
+	ngx_http_tcp_brutal_srv_conf_t *bscf;
+	ngx_uint_t s;
 
 	cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
+	bmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_tcp_brutal_module);
+
+	/* 打印每个server的brutal配置状态 */
+	cscfp = cmcf->servers.elts;
+	for (s = 0; s < cmcf->servers.nelts; s++) {
+		bscf = ngx_http_conf_get_module_srv_conf(cscfp[s], ngx_http_tcp_brutal_module);
+		ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0,
+			"Server [%V] brutal status: %s", 
+			&cscfp[s]->server_name,
+			((!bmcf->enable && !bscf->enable) || (bscf->enable == 0)) ? "disabled" : "enabled");
+	}
 
 	/* 将处理函数添加到ACCESS阶段 */
 	h = ngx_array_push(&cmcf->phases[NGX_HTTP_ACCESS_PHASE].handlers);
