@@ -94,6 +94,17 @@ ngx_http_tcp_brutal_handler(ngx_http_request_t *r)
 }
 
 /* 
+ * 模块预配置
+ * 在配置解析开始前被调用
+ */
+static ngx_int_t
+ngx_http_tcp_brutal_preconfiguration(ngx_conf_t *cf)
+{
+    ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "Brutal module preconfiguration start");
+    return NGX_OK;
+}
+
+/* 
  * 模块初始化函数
  * 在nginx启动时被调用，用于设置请求处理函数
  */
@@ -112,12 +123,23 @@ ngx_http_tcp_brutal_init(ngx_conf_t *cf)
 
 	/* 打印每个server的brutal配置状态 */
 	cscfp = cmcf->servers.elts;
+	
+	/* 添加调试日志 */
+	ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "Brutal module initializing, found %ui servers", cmcf->servers.nelts);
+
 	for (s = 0; s < cmcf->servers.nelts; s++) {
 		bscf = ngx_http_conf_get_module_srv_conf(cscfp[s], ngx_http_tcp_brutal_module);
-		ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0,
-			"Server [%V] brutal status: %s", 
-			&cscfp[s]->server_name,
-			((!bmcf->enable && !bscf->enable) || (bscf->enable == 0)) ? "disabled" : "enabled");
+		
+		if (cscfp[s]->server_name.len == 0) {
+			ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0,
+				"Server [default] brutal status: %s", 
+				((!bmcf->enable && !bscf->enable) || (bscf->enable == 0)) ? "disabled" : "enabled");
+		} else {
+			ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0,
+				"Server [%V] brutal status: %s", 
+				&cscfp[s]->server_name,
+				((!bmcf->enable && !bscf->enable) || (bscf->enable == 0)) ? "disabled" : "enabled");
+		}
 	}
 
 	/* 将处理函数添加到ACCESS阶段 */
@@ -256,7 +278,7 @@ static ngx_command_t ngx_http_tcp_brutal_commands[] = {
 
 /* 模块上下文定义 */
 static ngx_http_module_t  ngx_http_tcp_brutal_module_ctx = {
-	NULL,					/* preconfiguration */
+	ngx_http_tcp_brutal_preconfiguration,		/* preconfiguration */
 	ngx_http_tcp_brutal_init,		/* postconfiguration */
 
 	ngx_http_tcp_brutal_create_main_conf,	/* create main configuration */
