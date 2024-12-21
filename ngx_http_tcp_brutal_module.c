@@ -62,12 +62,8 @@ ngx_http_tcp_brutal_handler(ngx_http_request_t *r)
 	/* 检查是否启用brutal TCP */
 	if ((!bmcf->enable && !bscf->enable) || (bscf->enable == 0) || !blcf->rate) {
 		// 如果http和server都未启用，或server明确配置为off，或没有设置速率，则不启用brutal
-		ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "Brutal TCP flow control is not enabled for request from %V", &r->connection->addr_text);
 		return NGX_DECLINED;
 	}
-		
-    // 如果启用了brutal流控，记录日志
-    ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "Brutal TCP flow control is enabled for request from %V with rate %ui bytes/s", &r->connection->addr_text, blcf->rate);
 
 	/* 设置TCP拥塞控制算法为brutal */
 	char buf[32];
