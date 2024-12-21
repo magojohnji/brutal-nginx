@@ -6,6 +6,7 @@
  * This file is subject to the terms and conditions of the MIT License.
  */
 
+/* 包含必要的头文件 */
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
@@ -13,29 +14,38 @@
 #include <string.h>
 #include <errno.h>
 
+/* 定义数据类型别名，用于brutal参数 */
 typedef uint64_t u64;
 typedef uint32_t u32;
 
+/* brutal TCP拥塞控制算法的参数结构 */
 struct brutal_params
 {
-    u64 rate;      // Send rate in bytes per second
-    u32 cwnd_gain; // CWND gain in tenths (10=1.0)
+    u64 rate;      // 发送速率，单位为字节/秒
+    u32 cwnd_gain; // 拥塞窗口增益，以十分之一为单位(10=1.0)
 } __packed;
 
 extern ngx_module_t ngx_http_tcp_brutal_module;
 
+/* http主配置结构，用于http层面的配置 */
 typedef struct {
-	ngx_flag_t	enable;
+	ngx_flag_t	enable;  // 是否启用brutal TCP，可在http块中配置
 } ngx_http_tcp_brutal_main_conf_t;
 
+/* server配置结构，用于server层面的配置 */
 typedef struct {
-	ngx_flag_t	enable;
+	ngx_flag_t	enable;  // 是否启用brutal TCP，可在server块中配置
 } ngx_http_tcp_brutal_srv_conf_t;
 
+/* location配置结构，用于具体location的配置 */
 typedef struct {
-	ngx_uint_t	rate;
+	ngx_uint_t	rate;    // brutal TCP的传输速率设置
 } ngx_http_tcp_brutal_loc_conf_t;
 
+/* 
+ * 请求处理函数
+ * 当收到HTTP请求时，此函数会被调用来处理brutal TCP的设置
+ */
 static ngx_int_t
 ngx_http_tcp_brutal_handler(ngx_http_request_t *r)
 {
@@ -44,19 +54,22 @@ ngx_http_tcp_brutal_handler(ngx_http_request_t *r)
 	ngx_http_tcp_brutal_loc_conf_t *blcf;
 	int fd = r->connection->fd;
 
+	/* 获取各个层级的配置 */
 	bmcf = ngx_http_get_module_main_conf(r, ngx_http_tcp_brutal_module);
 	bscf = ngx_http_get_module_srv_conf(r, ngx_http_tcp_brutal_module);
 	blcf = ngx_http_get_module_loc_conf(r, ngx_http_tcp_brutal_module);
 
+	/* 检查是否启用brutal TCP（http或server层面）且设置了速率 */
 	if (!bmcf->enable && !bscf->enable && !blcf->rate) {
-        // 如果没有启用 brutal 流控，记录日志
+        // 如果没有启用brutal流控，记录日志
         ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "Brutal TCP flow control is not enabled for request from %V", &r->connection->addr_text);
         return NGX_DECLINED;
     }
 		
-    // 如果启用了 brutal 流控，记录日志
+    // 如果启用了brutal流控，记录日志
     ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "Brutal TCP flow control is enabled for request from %V with rate %ui bytes/s", &r->connection->addr_text, blcf->rate);
 
+	/* 设置TCP拥塞控制算法为brutal */
 	char buf[32];
 	strcpy(buf, "brutal");
 	socklen_t len = sizeof(buf);
@@ -66,11 +79,12 @@ ngx_http_tcp_brutal_handler(ngx_http_request_t *r)
 		return NGX_HTTP_INTERNAL_SERVER_ERROR;
 	}
 
+	/* 设置brutal TCP的参数 */
 	struct brutal_params params;
-	params.rate = (u64)blcf->rate;  // 显式转换为 u64 类型
-	params.cwnd_gain = 15;
+	params.rate = (u64)blcf->rate;  // 设置传输速率
+	params.cwnd_gain = 15;          // 设置拥塞窗口增益为1.5
 
-	// TCP_BRUTAL_PARAMS = 23301
+	// TCP_BRUTAL_PARAMS = 23301，设置brutal特定参数
 	if (setsockopt(fd, IPPROTO_TCP, 23301, &params, sizeof(params)) != 0) {
 		ngx_log_error(NGX_LOG_ERR, r->connection->log, errno, "tcp brutal TCP_CONGESTION 2 error");
 		return NGX_HTTP_INTERNAL_SERVER_ERROR;
@@ -79,6 +93,10 @@ ngx_http_tcp_brutal_handler(ngx_http_request_t *r)
 	return NGX_DECLINED;
 }
 
+/* 
+ * 模块初始化函数
+ * 在nginx启动时被调用，用于设置请求处理函数
+ */
 static ngx_int_t
 ngx_http_tcp_brutal_init(ngx_conf_t *cf)
 {
@@ -87,6 +105,7 @@ ngx_http_tcp_brutal_init(ngx_conf_t *cf)
 
 	cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
 
+	/* 将处理函数添加到ACCESS阶段 */
 	h = ngx_array_push(&cmcf->phases[NGX_HTTP_ACCESS_PHASE].handlers);
 	if (h == NULL)
 		return NGX_ERROR;
@@ -96,6 +115,10 @@ ngx_http_tcp_brutal_init(ngx_conf_t *cf)
 	return NGX_OK;
 }
 
+/* 
+ * 创建http主配置
+ * 在解析配置文件时被调用，用于创建http层面的配置结构
+ */
 static void *
 ngx_http_tcp_brutal_create_main_conf(ngx_conf_t *cf)
 {
@@ -110,18 +133,25 @@ ngx_http_tcp_brutal_create_main_conf(ngx_conf_t *cf)
 	return conf;
 }
 
+/* 
+ * 初始化http主配置
+ * 在配置合并阶段被调用，用于设置默认值
+ */
 static char *
 ngx_http_tcp_brutal_init_main_conf(ngx_conf_t *cf, void *conf)
 {
 	ngx_http_tcp_brutal_main_conf_t *bmcf = conf;
 
-	if (bmcf->enable == NGX_CONF_UNSET) {
+	if (bmcf->enable == NGX_CONF_UNSET)
 		bmcf->enable = 0;
-	}
 
 	return NGX_CONF_OK;
 }
 
+/* 
+ * 创建server配置
+ * 在解析配置文件时被调用，用于创建server层面的配置结构
+ */
 static void *
 ngx_http_tcp_brutal_create_srv_conf(ngx_conf_t *cf)
 {
@@ -136,6 +166,10 @@ ngx_http_tcp_brutal_create_srv_conf(ngx_conf_t *cf)
 	return conf;
 }
 
+/* 
+ * 合并server配置
+ * 在配置合并阶段被调用，用于合并不同层级的server配置
+ */
 static char *
 ngx_http_tcp_brutal_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 {
@@ -147,6 +181,10 @@ ngx_http_tcp_brutal_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 	return NGX_CONF_OK;
 }
 
+/* 
+ * 创建location配置
+ * 在解析配置文件时被调用，用于创建location层面的配置结构
+ */
 static void *
 ngx_http_tcp_brutal_create_loc_conf(ngx_conf_t *cf)
 {
@@ -161,37 +199,47 @@ ngx_http_tcp_brutal_create_loc_conf(ngx_conf_t *cf)
 	return conf;
 }
 
+/* 
+ * 合并location配置
+ * 在配置合并阶段被调用，用于合并不同层级的location配置
+ */
 static char *
 ngx_http_tcp_brutal_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
 	ngx_http_tcp_brutal_loc_conf_t *prev = parent;
 	ngx_http_tcp_brutal_loc_conf_t *conf = child;
 
-	ngx_conf_merge_uint_value(conf->rate, prev->rate, 2);
+
+	/*如果当前配置设置了 rate，就使用当前配置的值
+	如果当前配置没设置 rate，但上层配置设置了，就使用上层配置的值
+	如果两者都没设置，就使用默认值 2*/
+	ngx_conf_merge_uint_value(conf->rate, prev->rate, 2);  // 如果未设置，则默认值为2
 
 	return NGX_CONF_OK;
 }
 
+/* 模块命令定义 */
 static ngx_command_t ngx_http_tcp_brutal_commands[] = {
 	{
-		ngx_string("tcp_brutal"),
-		NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_FLAG,
-		ngx_conf_set_flag_slot,
-		NGX_HTTP_SRV_CONF_OFFSET,
-		offsetof(ngx_http_tcp_brutal_srv_conf_t, enable),
+		ngx_string("tcp_brutal"),              // 命令名称
+		NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_FLAG,  // 可在http和server块中使用，接受on/off参数
+		ngx_conf_set_flag_slot,               // 设置标志位的处理函数
+		NGX_HTTP_SRV_CONF_OFFSET,            // 配置类型（server配置）
+		offsetof(ngx_http_tcp_brutal_srv_conf_t, enable),  // enable字段的偏移量
 		NULL
 	},
 	{
-		ngx_string("tcp_brutal_rate"),
-		NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-		ngx_conf_set_num_slot,
-		NGX_HTTP_LOC_CONF_OFFSET,
-		offsetof(ngx_http_tcp_brutal_loc_conf_t, rate),
+		ngx_string("tcp_brutal_rate"),        // 命令名称
+		NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,  // 可在http/server/location块中使用，接受一个参数
+		ngx_conf_set_num_slot,               // 设置数值的处理函数
+		NGX_HTTP_LOC_CONF_OFFSET,           // 配置类型（location配置）
+		offsetof(ngx_http_tcp_brutal_loc_conf_t, rate),  // rate字段的偏移量
 		NULL
 	},
 	ngx_null_command
 };
 
+/* 模块上下文定义 */
 static ngx_http_module_t  ngx_http_tcp_brutal_module_ctx = {
 	NULL,					/* preconfiguration */
 	ngx_http_tcp_brutal_init,		/* postconfiguration */
@@ -206,10 +254,11 @@ static ngx_http_module_t  ngx_http_tcp_brutal_module_ctx = {
 	ngx_http_tcp_brutal_merge_loc_conf 	/* merge location configuration */
 };
 
+/* 模块定义 */
 ngx_module_t ngx_http_tcp_brutal_module = {
 	NGX_MODULE_V1,
 	&ngx_http_tcp_brutal_module_ctx,	/* module context */
-	ngx_http_tcp_brutal_commands,	/* module directives */ 
+	ngx_http_tcp_brutal_commands,	/* module directives */
 	NGX_HTTP_MODULE,			/* module type */
 	NULL,					/* init master */
 	NULL,					/* init module */
