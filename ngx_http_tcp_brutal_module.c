@@ -29,6 +29,10 @@ typedef struct {
 } ngx_http_tcp_brutal_main_conf_t;
 
 typedef struct {
+	ngx_flag_t	enable;
+} ngx_http_tcp_brutal_srv_conf_t;
+
+typedef struct {
 	ngx_uint_t	rate;
 } ngx_http_tcp_brutal_loc_conf_t;
 
@@ -36,13 +40,15 @@ static ngx_int_t
 ngx_http_tcp_brutal_handler(ngx_http_request_t *r)
 {
 	ngx_http_tcp_brutal_main_conf_t *bmcf;
+	ngx_http_tcp_brutal_srv_conf_t *bscf;
 	ngx_http_tcp_brutal_loc_conf_t *blcf;
 	int fd = r->connection->fd;
 
 	bmcf = ngx_http_get_module_main_conf(r, ngx_http_tcp_brutal_module);
+	bscf = ngx_http_get_module_srv_conf(r, ngx_http_tcp_brutal_module);
 	blcf = ngx_http_get_module_loc_conf(r, ngx_http_tcp_brutal_module);
 
-	if (!bmcf->enable) {
+	if (!bmcf->enable && !bscf->enable && !blcf->rate) {
         // 如果没有启用 brutal 流控，记录日志
         ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "Brutal TCP flow control is not enabled for request from %V", &r->connection->addr_text);
         return NGX_DECLINED;
@@ -117,6 +123,31 @@ ngx_http_tcp_brutal_init_main_conf(ngx_conf_t *cf, void *conf)
 }
 
 static void *
+ngx_http_tcp_brutal_create_srv_conf(ngx_conf_t *cf)
+{
+	ngx_http_tcp_brutal_srv_conf_t *conf;
+
+	conf = ngx_palloc(cf->pool, sizeof(*conf));
+	if (conf == NULL)
+		return NULL;
+
+	conf->enable = NGX_CONF_UNSET;
+
+	return conf;
+}
+
+static char *
+ngx_http_tcp_brutal_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
+{
+	ngx_http_tcp_brutal_srv_conf_t *prev = parent;
+	ngx_http_tcp_brutal_srv_conf_t *conf = child;
+
+	ngx_conf_merge_value(conf->enable, prev->enable, 0);
+
+	return NGX_CONF_OK;
+}
+
+static void *
 ngx_http_tcp_brutal_create_loc_conf(ngx_conf_t *cf)
 {
 	ngx_http_tcp_brutal_loc_conf_t *conf;
@@ -144,10 +175,10 @@ ngx_http_tcp_brutal_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 static ngx_command_t ngx_http_tcp_brutal_commands[] = {
 	{
 		ngx_string("tcp_brutal"),
-		NGX_HTTP_MAIN_CONF|NGX_CONF_FLAG,
+		NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_FLAG,
 		ngx_conf_set_flag_slot,
-		NGX_HTTP_MAIN_CONF_OFFSET,
-		offsetof(ngx_http_tcp_brutal_main_conf_t, enable),
+		NGX_HTTP_SRV_CONF_OFFSET,
+		offsetof(ngx_http_tcp_brutal_srv_conf_t, enable),
 		NULL
 	},
 	{
@@ -168,8 +199,8 @@ static ngx_http_module_t  ngx_http_tcp_brutal_module_ctx = {
 	ngx_http_tcp_brutal_create_main_conf,	/* create main configuration */
 	ngx_http_tcp_brutal_init_main_conf,	/* init main configuration */
 
-	NULL,					/* create server configuration */
-	NULL,					/* merge server configuration */
+	ngx_http_tcp_brutal_create_srv_conf,	/* create server configuration */
+	ngx_http_tcp_brutal_merge_srv_conf,	/* merge server configuration */
 
 	ngx_http_tcp_brutal_create_loc_conf,	/* create location configuration */
 	ngx_http_tcp_brutal_merge_loc_conf 	/* merge location configuration */
