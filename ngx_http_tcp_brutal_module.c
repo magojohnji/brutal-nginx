@@ -125,16 +125,28 @@ ngx_http_tcp_brutal_init(ngx_conf_t *cf)
 
 	for (s = 0; s < cmcf->servers.nelts; s++) {
 		bscf = ngx_http_conf_get_module_srv_conf(cscfp[s], ngx_http_tcp_brutal_module);
+		ngx_http_tcp_brutal_loc_conf_t *blcf = ngx_http_conf_get_module_loc_conf(cscfp[s], ngx_http_tcp_brutal_module);
 		
 		if (cscfp[s]->server_name.len == 0) {
-			ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0,
-				"Server [default] brutal status: %s", 
-				((!bmcf->enable && !bscf->enable) || (bscf->enable == 0)) ? "disabled" : "enabled");
+			if ((!bmcf->enable && !bscf->enable) || (bscf->enable == 0)) {
+				ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0,
+					"Server [default] brutal status: disabled");
+			} else {
+				ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0,
+					"Server [default] brutal status: enabled, rate: %ui bytes/s",
+					blcf->rate);
+			}
 		} else {
-			ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0,
-				"Server [%V] brutal status: %s", 
-				&cscfp[s]->server_name,
-				((!bmcf->enable && !bscf->enable) || (bscf->enable == 0)) ? "disabled" : "enabled");
+			if ((!bmcf->enable && !bscf->enable) || (bscf->enable == 0)) {
+				ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0,
+					"Server [%V] brutal status: disabled",
+					&cscfp[s]->server_name);
+			} else {
+				ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0,
+					"Server [%V] brutal status: enabled, rate: %ui bytes/s",
+					&cscfp[s]->server_name,
+					blcf->rate);
+			}
 		}
 	}
 

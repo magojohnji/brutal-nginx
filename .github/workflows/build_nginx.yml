@@ -62,6 +62,11 @@ jobs:
       # Verify the Nginx installation
       - name: Verify Nginx version
         run: /usr/local/nginx/sbin/nginx -v
+      # show logs
+      - name: Show Nginx logs
+        run: |
+          sudo /usr/local/nginx/sbin/nginx -p  /usr/local/nginx -c conf/nginx.conf
+          sudo cat /usr/local/nginx/logs/error.log
 
       # Package the build (optional)
       - name: Package Nginx binary
