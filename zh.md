@@ -4,7 +4,7 @@ vps需要先安装 [TCP Brutal](https://github.com/apernet/tcp-brutal)
 
 ## nginx 配置
 
-支持 tcp_brutal 配置在 http
+支持 tcp_brutal 配置在 http,server 上
 
 支持 tcp_brutal_rate 配置在http,server,location上
 
@@ -14,7 +14,7 @@ http {
 # Enable tcp brutal
   tcp_brutal on;
   tcp_brutal_rate 1048576;
-}
+
 server {
   listen 8080;
 
@@ -26,6 +26,12 @@ server {
   }
 }
 
+server {
+  listen 8099;
+  tcp_brutal off; # not brutal
+  ... 
+}
+}
 ```
 
 ## 安装 Nginx

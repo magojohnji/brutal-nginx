@@ -6,7 +6,7 @@ The VPS needs to have TCP Brutal installed first.
 
 ## Nginx Configuration
 
-The tcp_brutal directive is supported in the http block.
+The tcp_brutal directive is supported in the http ,server block.
 
 The tcp_brutal_rate directive is supported in http, server, and location blocks.
 
@@ -16,7 +16,7 @@ http {
 # Enable tcp brutal
   tcp_brutal on;
   tcp_brutal_rate 1048576;
-}
+
 server {
   listen 8080;
 
@@ -27,6 +27,13 @@ server {
     # Send rate in bytes per second
     tcp_brutal_rate 1048576;
   }
+}
+server {
+  listen 8099;
+  tcp_brutal off; # not brutal
+  ... 
+}
+
 }
 ```
 
