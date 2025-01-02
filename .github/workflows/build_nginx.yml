@@ -41,6 +41,13 @@ jobs:
           cd portable
           ./autogen.sh
 
+      # download nginx-module-vts
+      - name: Download nginx-module-vts
+        run: |
+          cd ..
+          git clone git://github.com/vozlt/nginx-module-vts.git
+
+
       # Configure and compile Nginx with the dynamic module
       - name: Configure and build Nginx with module
         run: |
@@ -55,7 +62,8 @@ jobs:
           --with-http_v3_module --with-mail --with-mail_ssl_module --with-stream --with-stream_realip_module --with-stream_ssl_module \
           --with-stream_ssl_preread_module \
           --with-openssl=../portable \
-          --add-module=../brutal-nginx
+          --add-module=../brutal-nginx \
+          --add-module=../nginx-module-vts 
           make -j
           sudo make install
 
