@@ -2,6 +2,8 @@
 
 vps需要先安装 [TCP Brutal](https://github.com/apernet/tcp-brutal)
 
+[brutal_nginx的博客](https://blog.smallparking.eu.org/posts/brutal-nginx/)
+
 ## nginx 配置
 
 支持 tcp_brutal 配置在 http,server 上
