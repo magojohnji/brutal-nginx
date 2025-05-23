@@ -62,7 +62,6 @@ jobs:
           --with-http_v3_module --with-mail --with-mail_ssl_module --with-stream --with-stream_realip_module --with-stream_ssl_module \
           --with-stream_ssl_preread_module \
           --with-openssl=../portable \
-          --with-http_proxy_module \
           --add-module=../brutal-nginx \
           --add-module=../nginx-module-vts 
           make -j
