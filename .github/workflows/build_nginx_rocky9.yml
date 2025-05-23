@@ -1,4 +1,4 @@
-name: Build and Compile Nginx with Module
+name: Build rocky9 and Compile Nginx with Module
 
 on:
   push:
