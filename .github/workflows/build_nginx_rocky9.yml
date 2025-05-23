@@ -24,7 +24,7 @@ jobs:
         run: |
           yum install -y sudo
           sudo yum install -y git gcc patch diffutils autoconf automake \
-          zlib-devel pcre2-devel make
+          zlib-devel pcre2-devel make libtool
 
       # Download Nginx source code
       - name: Download Nginx source
