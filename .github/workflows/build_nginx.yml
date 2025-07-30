@@ -1,6 +1,7 @@
 name: Build and Compile Nginx with Module
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -29,17 +30,17 @@ jobs:
           pwd 
           ls -lhat 
           cd ..
-          git clone https://github.com/nginx/nginx.git
+          git clone https://github.com/nginx/nginx.git -b release-1.29.0
       
       # download libressl ssl
-      - name: Download libressl ssl
+      - name: Download openssl ssl
         run: |
           pwd 
           ls -lhat 
           cd ..
-          git clone https://github.com/libressl/portable.git
-          cd portable
-          ./autogen.sh
+          git clone https://github.com/openssl/openssl.git -b openssl-3.5.1
+          cd openssl
+          ./config --prefix=/usr/local/openssl --openssldir=/usr/local/openssl
 
       # download nginx-module-vts
       - name: Download nginx-module-vts
@@ -61,10 +62,11 @@ jobs:
           --with-http_slice_module --with-http_ssl_module --with-http_stub_status_module --with-http_sub_module --with-http_v2_module \
           --with-http_v3_module --with-mail --with-mail_ssl_module --with-stream --with-stream_realip_module --with-stream_ssl_module \
           --with-stream_ssl_preread_module \
-          --with-openssl=../portable \
+          --with-openssl=../openssl \
+          --with-openssl-opt="enable-ktls" \
           --add-module=../brutal-nginx \
           --add-module=../nginx-module-vts 
-          make -j
+          make -j$(nproc)
           sudo make install
 
       # Verify the Nginx installation
