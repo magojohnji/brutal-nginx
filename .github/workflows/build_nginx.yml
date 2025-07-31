@@ -30,7 +30,7 @@ jobs:
           pwd 
           ls -lhat 
           cd ..
-          git clone https://github.com/nginx/nginx.git -b release-1.29.0
+          git clone https://github.com/nginx/nginx.git -b release-1.29.0 --depth=1
       
       # download libressl ssl
       - name: Download openssl ssl
@@ -38,7 +38,7 @@ jobs:
           pwd 
           ls -lhat 
           cd ..
-          git clone https://github.com/openssl/openssl.git -b openssl-3.5.1
+          git clone https://github.com/openssl/openssl.git -b openssl-3.5.1 --depth=1
           cd openssl
           ./config --prefix=/usr/local/openssl --openssldir=/usr/local/openssl
 
