@@ -1,8 +1,6 @@
 ## Brutal Nginx
 
-vps需要先安装 [TCP Brutal](https://github.com/apernet/tcp-brutal)
-
-[brutal_nginx的博客](https://blog.smallparking.eu.org/posts/brutal-nginx/)
+VPS 需要先安装 [TCP Brutal](https://github.com/apernet/tcp-brutal)
 
 ## nginx 配置
 
